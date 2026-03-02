@@ -1,0 +1,239 @@
+﻿<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ポケモンユナイト ロール抽選</title>
+  <style>
+    :root {
+      --bg1: #0b1d3a;
+      --bg2: #153e75;
+      --card: #ffffff;
+      --accent: #ff9f1c;
+      --text: #0f172a;
+      --muted: #475569;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.2), transparent 30%),
+        radial-gradient(circle at 80% 10%, rgba(255, 159, 28, 0.2), transparent 35%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .container {
+      width: min(1000px, 100%);
+      background: var(--card);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.4rem, 3vw, 2rem);
+    }
+
+    p {
+      margin: 0 0 20px;
+      color: var(--muted);
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--accent);
+      color: #1f2937;
+      transition: transform 0.15s ease, filter 0.2s ease;
+    }
+
+    button:hover { filter: brightness(1.05); }
+    button:active { transform: translateY(1px); }
+
+    .teams {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: 1fr;
+    }
+
+    .team {
+      border: 2px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 14px;
+      background: #f8fafc;
+      overflow-x: auto;
+    }
+
+    .team h2 {
+      margin: 0 0 12px;
+      font-size: 1.1rem;
+      color: #1e293b;
+    }
+
+    .grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(5, minmax(140px, 1fr));
+      min-width: 760px;
+    }
+
+    .slot {
+      border: 2px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 12px;
+      background: #ffffff;
+      min-height: 92px;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 8px;
+    }
+
+    .player {
+      font-weight: 700;
+      color: #334155;
+      font-size: 0.95rem;
+    }
+
+    .role {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #111827;
+    }
+
+    .tag {
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      color: #334155;
+    }
+
+    .footer {
+      margin-top: 14px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>ポケモンユナイト ロール抽選</h1>
+    <p>チームA・チームBの2チームを同時に抽選します（上キャリー / 中央 / 下キャリー / サポ / ディフェンス）。</p>
+
+    <div class="controls">
+      <button id="drawBtn">2チーム同時に抽選する</button>
+      <button id="copyBtn">結果をコピー</button>
+    </div>
+
+    <section class="teams" id="teams"></section>
+    <div class="footer" id="timestamp">まだ抽選していません。</div>
+  </main>
+
+  <script>
+    const teamNames = ["チームA", "チームB"];
+    const players = ["プレイヤー1", "プレイヤー2", "プレイヤー3", "プレイヤー4", "プレイヤー5"];
+    const roles = ["上キャリー", "中央", "下キャリー", "サポ", "ディフェンス"];
+
+    const teams = document.getElementById("teams");
+    const drawBtn = document.getElementById("drawBtn");
+    const copyBtn = document.getElementById("copyBtn");
+    const timestamp = document.getElementById("timestamp");
+
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function buildTeam(teamName) {
+      const shuffledRoles = shuffle(roles);
+      const pairs = players.map((player, i) => ({ player, role: shuffledRoles[i] }));
+
+      const team = document.createElement("article");
+      team.className = "team";
+      team.dataset.team = teamName;
+      team.innerHTML = `<h2>${teamName}</h2><div class="grid"></div>`;
+
+      const grid = team.querySelector(".grid");
+      pairs.forEach(({ player, role }, i) => {
+        const card = document.createElement("article");
+        card.className = "slot";
+        card.innerHTML = `
+          <div class="tag">${i + 1}人目</div>
+          <div class="player">${player}</div>
+          <div class="role">${role}</div>
+        `;
+        grid.appendChild(card);
+      });
+
+      return team;
+    }
+
+    function drawRoles() {
+      teams.innerHTML = "";
+      teamNames.forEach((teamName) => {
+        teams.appendChild(buildTeam(teamName));
+      });
+
+      const now = new Date();
+      timestamp.textContent = `最終抽選: ${now.toLocaleString("ja-JP")}`;
+    }
+
+    function copyResult() {
+      const teamCards = [...document.querySelectorAll(".team")];
+      if (!teamCards.length) {
+        alert("先に抽選してください。");
+        return;
+      }
+
+      const text = teamCards.map((team) => {
+        const teamName = team.dataset.team;
+        const cards = [...team.querySelectorAll(".slot")];
+        const lines = cards.map((card) => {
+          const player = card.querySelector(".player").textContent;
+          const role = card.querySelector(".role").textContent;
+          return `${player}: ${role}`;
+        });
+        return `${teamName}\n${lines.join("\n")}`;
+      }).join("\n\n");
+
+      navigator.clipboard.writeText(text)
+        .then(() => alert("結果をコピーしました。"))
+        .catch(() => alert("コピーに失敗しました。"));
+    }
+
+    drawBtn.addEventListener("click", drawRoles);
+    copyBtn.addEventListener("click", copyResult);
+
+    drawRoles();
+  </script>
+</body>
+</html>
+
+
+
+
