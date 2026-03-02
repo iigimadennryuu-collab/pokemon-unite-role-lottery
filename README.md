@@ -1,1 +1,1 @@
-# pokemon-unite-role-lottery
+# ポケモンユナイトロール抽選
